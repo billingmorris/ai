@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Plantillas de prompts por defecto -->
+    <record id="template_create_invoice" model="ai.prompt.template">
+        <field name="name">Crear Factura</field>
+        <field name="category">document</field>
+        <field name="action_type">create_invoice</field>
+        <field name="system_prompt">Eres un asistente experto en facturación de Odoo 16. 
+Cuando el usuario describa una factura, responde ÚNICAMENTE con un JSON válido sin texto adicional:
+{
+  "partner_name": "nombre exacto del cliente",
+  "invoice_date": "YYYY-MM-DD",
+  "lines": [
+    {"name": "descripción", "quantity": 1, "price_unit": 0.0}
+  ],
+  "notes": "observaciones"
+}</field>
+        <field name="user_prompt_template">Crea una factura con la siguiente información:
+{input}
+
+Empresa: {company}
+Fecha: {date}</field>
+    </record>
+
+    <record id="template_create_sale" model="ai.prompt.template">
+        <field name="name">Crear Pedido de Venta</field>
+        <field name="category">sales</field>
+        <field name="action_type">create_sale_order</field>
+        <field name="system_prompt">Eres un asistente de ventas en Odoo 16.
+Cuando el usuario describa un pedido, responde ÚNICAMENTE con JSON:
+{
+  "partner_name": "nombre del cliente",
+  "order_date": "YYYY-MM-DD",
+  "lines": [
+    {"product_name": "nombre producto", "quantity": 1, "price_unit": 0.0}
+  ],
+  "notes": "observaciones"
+}</field>
+        <field name="user_prompt_template">Crea un pedido de venta con:
+{input}
+
+Empresa: {company}
+Fecha: {date}</field>
+    </record>
+
+    <record id="template_send_email" model="ai.prompt.template">
+        <field name="name">Redactar Correo Profesional</field>
+        <field name="category">email</field>
+        <field name="action_type">send_email</field>
+        <field name="system_prompt">Eres un redactor de correos profesionales en español.
+Escribe correos formales, claros y concisos.
+La primera línea SIEMPRE debe ser "Asunto: [asunto del correo]"
+Luego escribe el cuerpo del correo.</field>
+        <field name="user_prompt_template">Redacta un correo profesional para:
+{input}
+
+Empresa remitente: {company}
+Firmado por: {user}</field>
+    </record>
+
+    <record id="template_summarize" model="ai.prompt.template">
+        <field name="name">Resumir Documento</field>
+        <field name="category">analysis</field>
+        <field name="action_type">summarize</field>
+        <field name="system_prompt">Eres un asistente de síntesis. 
+Genera resúmenes ejecutivos concisos en español, destacando:
+- Puntos principales
+- Fechas o cifras clave
+- Conclusiones o acciones requeridas</field>
+        <field name="user_prompt_template">Resume el siguiente contenido:
+
+{input}
+
+Contexto: {record_name}</field>
+    </record>
+
+    <record id="template_translate" model="ai.prompt.template">
+        <field name="name">Traducir Texto</field>
+        <field name="category">custom</field>
+        <field name="action_type">translate</field>
+        <field name="system_prompt">Eres un traductor profesional. 
+Traduce el texto manteniendo el tono, formato y significado original.
+No añadas explicaciones, solo entrega la traducción.</field>
+        <field name="user_prompt_template">Traduce el siguiente texto:
+
+{input}</field>
+    </record>
+</odoo>

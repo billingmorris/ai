@@ -1,0 +1,96 @@
+/* =============================================
+   AI Assistant - Estilos personalizados
+   ============================================= */
+
+/* Botón flotante del asistente */
+.ai-assistant-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 50px !important;
+    padding: 6px 16px !important;
+    font-size: 13px !important;
+    cursor: pointer !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4) !important;
+}
+
+.ai-assistant-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5) !important;
+}
+
+/* Header del wizard */
+.ai-assistant-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* Campo de respuesta */
+.ai-response-container {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Segoe UI', sans-serif;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* Animación de carga */
+@keyframes ai-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.ai-loading {
+    animation: ai-pulse 1.5s ease-in-out infinite;
+    color: #667eea;
+    font-style: italic;
+}
+
+/* Badge de proveedor */
+.ai-provider-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ai-provider-openai { background: #74aa9c; color: white; }
+.ai-provider-anthropic { background: #c8572f; color: white; }
+.ai-provider-deepseek { background: #1a6fc4; color: white; }
+
+/* Chatter button */
+.o_chatter .o_ai_action_btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 20px;
+    border: none;
+    padding: 4px 12px;
+    font-size: 12px;
+}
+
+/* Stats card */
+.ai-stat-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+}
+
+.ai-stat-card .value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #667eea;
+}
+
+.ai-stat-card .label {
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 4px;
+}
