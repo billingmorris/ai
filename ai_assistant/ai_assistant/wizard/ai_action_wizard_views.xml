@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_action_wizard_form" model="ir.ui.view">
+        <field name="name">ai.action.wizard.form</field>
+        <field name="model">ai.action.wizard</field>
+        <field name="arch" type="xml">
+            <form string="🤖 Asistente de IA">
+                <sheet>
+                    <!-- Header del asistente -->
+                    <div class="ai-assistant-header" style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 20px; border-radius: 8px; margin-bottom: 16px;">
+                        <h2 style="margin:0; color:white;">🤖 Asistente de Inteligencia Artificial</h2>
+                        <p style="margin:4px 0 0; opacity:0.9;">
+                            Automatiza operaciones con IA
+                            <span attrs="{'invisible': [('record_name', '=', False)]}">
+                                — Contexto: <strong><field name="record_name" nolabel="1"
+                                    style="color:white; background:transparent; border:none;
+                                           font-weight:bold; display:inline;"/></strong>
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- Configuración -->
+                    <group string="⚙️ Configuración">
+                        <group>
+                            <field name="action_type" widget="radio"/>
+                        </group>
+                        <group>
+                            <field name="provider_id"/>
+                            <field name="template_id"
+                                domain="[('action_type', '=', action_type)]"
+                                options="{'no_create': True}"/>
+                            <field name="target_language"
+                                attrs="{'invisible': [('action_type', '!=', 'translate')],
+                                        'required': [('action_type', '=', 'translate')]}"/>
+                        </group>
+                    </group>
+
+                    <!-- Campos ocultos de contexto -->
+                    <field name="res_model" invisible="1"/>
+                    <field name="res_id" invisible="1"/>
+
+                    <!-- Input del usuario -->
+                    <group string="💬 Tu Instrucción">
+                        <field name="user_input" nolabel="1" widget="text"
+                            style="min-height: 100px;"
+                            placeholder="Ejemplo: Crea una factura para el cliente Juan García por 2 horas de consultoría a $150/hora, con fecha de hoy..."/>
+                    </group>
+
+                    <!-- Botón principal -->
+                    <div class="text-center" style="margin: 16px 0;">
+                        <button name="action_call_ai" type="object" string="✨ Generar con IA"
+                            class="btn-primary btn-lg" style="padding: 12px 40px; font-size: 16px;"/>
+                    </div>
+
+                    <!-- Error -->
+                    <div class="alert alert-danger" role="alert"
+                        attrs="{'invisible': [('error_message', '=', False)]}">
+                        <strong>❌ Error:</strong> <field name="error_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <!-- Respuesta -->
+                    <group string="📄 Respuesta de la IA"
+                        attrs="{'invisible': [('ai_response', '=', False)]}">
+                        <field name="response_html" widget="html" nolabel="1" readonly="1"/>
+                        <field name="ai_response" widget="text" nolabel="1" readonly="1"
+                            string="Texto plano"/>
+                    </group>
+                </sheet>
+
+                <footer attrs="{'invisible': [('ai_response', '=', False)]}">
+                    <button name="action_apply_response" type="object"
+                        string="✅ Aplicar Acción"
+                        class="btn-success"
+                        confirm="¿Deseas aplicar esta respuesta de la IA?"/>
+                    <button name="action_call_ai" type="object"
+                        string="🔄 Regenerar" class="btn-secondary"/>
+                    <button string="Cerrar" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción para abrir el asistente desde el menú -->
+    <record id="action_ai_assistant_standalone" model="ir.actions.act_window">
+        <field name="name">🤖 Asistente IA</field>
+        <field name="res_model">ai.action.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
