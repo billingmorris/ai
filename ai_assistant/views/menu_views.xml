@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Menú principal -->
+    <menuitem id="menu_ai_assistant_root"
+        name="🤖 IA Assistant"
+        sequence="100"
+        web_icon="ai_assistant,static/src/img/icon.png"/>
+
+    <!-- Submenú: Asistente -->
+    <menuitem id="menu_ai_assistant_wizard"
+        name="Abrir Asistente"
+        parent="menu_ai_assistant_root"
+        action="action_ai_assistant_standalone"
+        sequence="10"/>
+
+    <!-- Submenú: Configuración -->
+    <menuitem id="menu_ai_assistant_config"
+        name="Configuración"
+        parent="menu_ai_assistant_root"
+        sequence="50"
+        groups="base.group_system"/>
+
+    <menuitem id="menu_ai_provider"
+        name="Proveedores de IA"
+        parent="menu_ai_assistant_config"
+        action="action_ai_provider"
+        sequence="10"
+        groups="base.group_system"/>
+
+    <menuitem id="menu_ai_prompt_template"
+        name="Plantillas de Prompt"
+        parent="menu_ai_assistant_config"
+        action="action_ai_prompt_template"
+        sequence="20"
+        groups="base.group_system"/>
+
+    <!-- Submenú: Reportes -->
+    <menuitem id="menu_ai_reports"
+        name="Reportes"
+        parent="menu_ai_assistant_root"
+        sequence="80"
+        groups="base.group_system"/>
+
+    <menuitem id="menu_ai_log"
+        name="Log de Solicitudes"
+        parent="menu_ai_reports"
+        action="action_ai_log"
+        sequence="10"
+        groups="base.group_system"/>
+</odoo>
