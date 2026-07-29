@@ -7,9 +7,11 @@
             <form string="🤖 Asistente de IA">
                 <sheet>
                     <!-- Campos de contexto (ocultos) -->
-                    <field name="res_model"   invisible="1"/>
-                    <field name="res_id"      invisible="1"/>
-                    <field name="action_type" invisible="1"/>
+                    <field name="res_model"     invisible="1"/>
+                    <field name="res_id"        invisible="1"/>
+                    <field name="action_type"   invisible="1"/>
+                    <field name="ai_response"   invisible="1"/>
+                    <field name="error_message" invisible="1"/>
 
                     <!-- Header -->
                     <div style="
