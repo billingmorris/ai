@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_ai_action_wizard_form" model="ir.ui.view">
+        <field name="name">ai.action.wizard.form</field>
+        <field name="model">ai.action.wizard</field>
+        <field name="arch" type="xml">
+            <form string="🤖 Asistente de IA">
+                <sheet>
+                    <!-- Campos de contexto (ocultos) -->
+                    <field name="res_model"      invisible="1"/>
+                    <field name="res_id"         invisible="1"/>
+                    <field name="action_type"    invisible="1"/>
+                    <field name="ai_response"    invisible="1"/>
+                    <field name="error_message"  invisible="1"/>
+                    <field name="has_attachment" invisible="1"/>
+
+                    <!-- Header -->
+                    <div style="
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white; padding: 18px 24px; border-radius: 8px;
+                        margin-bottom: 20px;">
+                        <h2 style="margin:0; color:white; font-size:20px;">
+                            🤖 Asistente de Inteligencia Artificial
+                        </h2>
+                        <p style="margin:6px 0 0; opacity:0.85; font-size:13px;">
+                            Describe lo que necesitas y la IA ejecutará la acción correcta.
+                            <span attrs="{'invisible': [('record_name', '=', False)]}">
+                                Contexto: <strong>
+                                    <field name="record_name" nolabel="1"
+                                        style="color:white;background:transparent;
+                                               border:none;font-weight:bold;display:inline;
+                                               padding:0;"/>
+                                </strong>
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- Proveedor (compacto, opcional) -->
+                    <div style="margin-bottom:16px;">
+                        <field name="provider_id" nolabel="1"
+                            options="{'no_create': True}"
+                            style="width:260px;"
+                            placeholder="Proveedor de IA"/>
+                    </div>
+
+                    <!-- Campo principal de instrucción — ancho completo -->
+                    <div style="width:80%; margin: 0 auto 20px auto;">
+                        <field name="user_input"
+                            nolabel="1"
+                            widget="text"
+                            style="width:100%; min-height:120px; font-size:15px;
+                                   padding:12px; border-radius:6px;
+                                   border:2px solid #c0c9d8; resize:vertical;"
+                            placeholder="Ejemplos:
+• Crea una cotización para Sumilab con 20 kg de Glicerina USP
+• Genera una factura para Acme Corp por 5 horas de consultoría a $150
+• Redacta un correo de seguimiento para el cliente Juan García
+• Traduce el siguiente texto al inglés: ..."/>
+                    </div>
+
+                    <!-- Adjuntos -->
+                    <div style="width:80%; margin: 0 auto 16px auto;">
+                        <field name="attachment_ids"
+                            widget="many2many_binary"
+                            string="📎 Adjuntar imágenes o PDFs"
+                            nolabel="1"
+                            options="{'accepted_file_extensions': '.pdf,.png,.jpg,.jpeg,.gif,.webp'}"/>
+                        <div attrs="{'invisible': [('has_attachment', '=', False)]}"
+                            style="font-size:12px; color:#6c757d; margin-top:4px; line-height:1.6;">
+                            📌 <strong>Claude:</strong> imágenes ✅ | PDFs ✅ nativo<br/>
+                            📌 <strong>GPT-4o:</strong> imágenes ✅ | PDFs ✅ (extrae texto)<br/>
+                            📌 <strong>DeepSeek:</strong> imágenes ⚠️ no soportado | PDFs ✅ (extrae texto)<br/>
+                            <em>Para PDFs se requiere: <code>pip install pypdf --break-system-packages</code></em>
+                        </div>
+                    </div>
+
+                    <!-- Botón generar -->
+                    <div class="text-center" style="margin-bottom:20px;">
+                        <button name="action_call_ai" type="object"
+                            string="✨ Enviar"
+                            class="btn-primary"
+                            style="padding:10px 48px; font-size:15px; border-radius:6px;"/>
+                    </div>
+
+                    <!-- Error -->
+                    <div class="alert alert-danger" role="alert"
+                        attrs="{'invisible': [('error_message', '=', False)]}">
+                        <strong>❌ Error:</strong>
+                        <field name="error_message" nolabel="1" readonly="1"/>
+                    </div>
+
+                    <!-- Respuesta -->
+                    <div attrs="{'invisible': [('ai_response', '=', False)]}"
+                        style="margin-top:12px;">
+                        <div class="o_form_label"
+                            style="font-weight:600; color:#444; margin-bottom:6px;">
+                            📄 Respuesta de la IA
+                        </div>
+                        <field name="response_html" widget="html" nolabel="1" readonly="1"/>
+                    </div>
+                </sheet>
+
+                <footer attrs="{'invisible': [('ai_response', '=', False)]}">
+                    <button name="action_apply_response" type="object"
+                        string="✅ Aplicar"
+                        class="btn-success"
+                        confirm="¿Confirmas ejecutar esta acción en Odoo?"/>
+                    <button name="action_call_ai" type="object"
+                        string="🔄 Regenerar"
+                        class="btn-secondary"/>
+                    <button string="Cerrar" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción para abrir el asistente desde el menú -->
+    <record id="action_ai_assistant_standalone" model="ir.actions.act_window">
+        <field name="name">🤖 Asistente IA</field>
+        <field name="res_model">ai.action.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
