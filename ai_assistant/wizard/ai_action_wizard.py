@@ -40,6 +40,21 @@ class AiActionWizard(models.TransientModel):
     response_html = fields.Html(string='Vista Previa', readonly=True)
     error_message = fields.Char(string='Error', readonly=True)
 
+    # Adjuntos
+    attachment_ids = fields.Many2many(
+        'ir.attachment',
+        'ai_wizard_attachment_rel',
+        'wizard_id', 'attachment_id',
+        string='Archivos adjuntos',
+        help='Adjunta imágenes (PNG, JPG) o PDFs para que la IA los analice',
+    )
+    has_attachment = fields.Boolean(compute='_compute_has_attachment')
+
+    @api.depends('attachment_ids')
+    def _compute_has_attachment(self):
+        for rec in self:
+            rec.has_attachment = bool(rec.attachment_ids)
+
     # ------------------------------------------------------------------ #
     #  HELPERS                                                             #
     # ------------------------------------------------------------------ #
@@ -114,7 +129,10 @@ class AiActionWizard(models.TransientModel):
 
         try:
             response = self.provider_id.call_ai(
-                prompt, system_prompt=self._get_system_prompt())
+                prompt,
+                system_prompt=self._get_system_prompt(),
+                attachments=self.attachment_ids,
+            )
             self.ai_response = response
             self.error_message = False
 
@@ -199,41 +217,136 @@ class AiActionWizard(models.TransientModel):
     #  BÚSQUEDAS EN ODOO                                                   #
     # ------------------------------------------------------------------ #
 
+    def _normalize(self, text):
+        """Normaliza texto: minúsculas, sin tildes, sin caracteres especiales."""
+        import unicodedata
+        text = text.lower().strip()
+        text = unicodedata.normalize('NFD', text)
+        text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+        return text
+
     def _find_partner(self, name):
-        """Busca un cliente por nombre exacto primero, luego aproximado."""
+        """
+        Busca un cliente con múltiples estrategias:
+        1. Nombre exacto (=ilike)
+        2. Nombre comercial / company_name
+        3. Coincidencia parcial (ilike)
+        4. Por palabras clave individuales
+        5. Nombre normalizado sin tildes
+        """
         if not name:
-            raise UserError(_('La IA no especificó un cliente.'))
+            raise UserError(_("La IA no especificó un cliente."))
 
-        # 1. Coincidencia exacta (case-insensitive)
-        partner = self.env['res.partner'].search(
-            [('name', '=ilike', name), ('active', '=', True)], limit=1)
-        if partner:
-            return partner
+        name = name.strip()
+        Partner = self.env["res.partner"]
+        base_domain = [("active", "=", True)]
 
-        # 2. Coincidencia parcial
-        partner = self.env['res.partner'].search(
-            [('name', 'ilike', name), ('active', '=', True)], limit=1)
-        if partner:
-            return partner
+        # 1. Exacto
+        p = Partner.search(base_domain + [("name", "=ilike", name)], limit=1)
+        if p:
+            return p
+
+        # 2. Nombre comercial (commercial_company_name) y ref interna
+        p = Partner.search(base_domain + [
+            "|", "|",
+            ("commercial_company_name", "ilike", name),
+            ("ref", "ilike", name),
+            ("display_name", "ilike", name),
+        ], limit=1)
+        if p:
+            return p
+
+        # 3. Parcial en name
+        p = Partner.search(base_domain + [("name", "ilike", name)], limit=1)
+        if p:
+            return p
+
+        # 4. Palabras clave: buscar cada palabra significativa (>3 chars)
+        words = [w for w in name.split() if len(w) > 3]
+        for word in words:
+            p = Partner.search(base_domain + [
+                "|",
+                ("name", "ilike", word),
+                ("commercial_company_name", "ilike", word),
+            ], limit=1)
+            if p:
+                _logger.info("Partner encontrado por palabra clave '%s': %s", word, p.name)
+                return p
+
+        # 5. Búsqueda con name_search (usa el método propio del modelo, incluye alias)
+        results = Partner.name_search(name, limit=1)
+        if results:
+            return Partner.browse(results[0][0])
 
         raise UserError(
             _('No se encontró el cliente "%s" en Odoo.\n'
               'Verifique que exista en Contactos.') % name
         )
 
+
     def _find_product(self, name):
-        """Busca un producto por nombre exacto primero, luego aproximado."""
+        """
+        Busca un producto con múltiples estrategias:
+        1. Exacto
+        2. Parcial
+        3. Por palabras clave significativas (todas deben estar presentes)
+        4. Por cualquier palabra clave (al menos una)
+        5. name_search del modelo
+        """
         if not name:
             return None
 
-        product = self.env['product.product'].search(
-            [('name', '=ilike', name), ('active', '=', True)], limit=1)
-        if product:
-            return product
+        name = name.strip()
+        Product = self.env["product.product"]
+        base_domain = [("active", "=", True), ("sale_ok", "=", True)]
 
-        product = self.env['product.product'].search(
-            [('name', 'ilike', name), ('active', '=', True)], limit=1)
-        return product  # puede ser None, se manejará en el llamador
+        # 1. Exacto
+        p = Product.search(base_domain + [("name", "=ilike", name)], limit=1)
+        if p:
+            return p
+
+        # 2. Parcial completo
+        p = Product.search(base_domain + [("name", "ilike", name)], limit=1)
+        if p:
+            return p
+
+        # 3. Todas las palabras clave deben estar en el nombre (AND)
+        words = [w for w in name.split() if len(w) > 3]
+        if words:
+            domain = list(base_domain)
+            for word in words:
+                domain.append(("name", "ilike", word))
+            p = Product.search(domain, limit=1)
+            if p:
+                _logger.info("Producto encontrado por palabras AND '%s': %s", name, p.name)
+                return p
+
+        # 4. Al menos una palabra clave coincide (OR) — tomar el que más palabras comparte
+        if words:
+            or_domain = [base_domain[0], base_domain[1]]
+            or_clauses = []
+            for word in words:
+                or_clauses += [("name", "ilike", word)]
+            if len(or_clauses) > 1:
+                or_domain += ["|"] * (len(or_clauses) - 1) + or_clauses
+            else:
+                or_domain += or_clauses
+            candidates = Product.search(or_domain, limit=20)
+            if candidates:
+                # Ordenar por cantidad de palabras coincidentes
+                norm_name = self._normalize(name)
+                best = max(candidates, key=lambda p: sum(
+                    1 for w in words if w.lower() in self._normalize(p.name)
+                ))
+                _logger.info("Producto encontrado por palabras OR '%s': %s", name, best.name)
+                return best
+
+        # 5. name_search
+        results = Product.name_search(name, limit=1)
+        if results:
+            return Product.browse(results[0][0])
+
+        return None
 
     def _find_uom(self, uom_name):
         """Busca una unidad de medida por nombre."""

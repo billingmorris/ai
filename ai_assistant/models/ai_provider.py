@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import base64
 import json
 import logging
 import requests
@@ -81,18 +82,130 @@ class AiProvider(models.Model):
                 'Content-Type': 'application/json',
             }
 
-    def _build_payload(self, messages, system_prompt=None):
+    # ------------------------------------------------------------------ #
+    #  SOPORTE MULTIMODAL (imágenes y PDFs)                                #
+    # ------------------------------------------------------------------ #
+
+    IMAGE_MIMES = {'image/png', 'image/jpeg', 'image/gif', 'image/webp'}
+
+    def _extract_pdf_text(self, data_b64):
+        """Extrae texto de un PDF en base64. Usa pypdf si está disponible."""
+        try:
+            import io
+            raw = base64.b64decode(data_b64)
+            try:
+                from pypdf import PdfReader
+            except ImportError:
+                try:
+                    from PyPDF2 import PdfReader
+                except ImportError:
+                    return None  # sin librería disponible
+            reader = PdfReader(io.BytesIO(raw))
+            pages = []
+            for i, page in enumerate(reader.pages, 1):
+                text = page.extract_text() or ''
+                if text.strip():
+                    pages.append(f'[Página {i}]\n{text.strip()}')
+            return '\n\n'.join(pages) if pages else None
+        except Exception as e:
+            _logger.warning("Error extrayendo texto de PDF: %s", e)
+            return None
+
+    def _build_attachment_content(self, attachments):
+        """
+        Convierte adjuntos al formato correcto según el proveedor:
+        - anthropic: bloques nativos (image + document)
+        - openai:    bloques image_url para imágenes; texto extraído para PDFs
+        - deepseek:  solo texto (no soporta visión); extrae texto de PDFs,
+                     ignora imágenes con aviso
+        Devuelve lista de bloques para inyectar en el mensaje del usuario.
+        """
+        blocks = []
+        text_fallbacks = []  # texto adicional para proveedores sin visión
+
+        for att in (attachments or []):
+            try:
+                if not att.datas:
+                    continue
+                data_b64 = att.datas.decode('utf-8') if isinstance(att.datas, bytes) else att.datas
+                mime = (att.mimetype or '').lower()
+                name = att.name or 'archivo'
+
+                # ---- IMAGEN ------------------------------------------------
+                if mime in self.IMAGE_MIMES:
+                    if self.provider_type == 'anthropic':
+                        blocks.append({
+                            'type': 'image',
+                            'source': {'type': 'base64', 'media_type': mime, 'data': data_b64},
+                        })
+                    elif self.provider_type == 'openai':
+                        blocks.append({
+                            'type': 'image_url',
+                            'image_url': {'url': f'data:{mime};base64,{data_b64}', 'detail': 'high'},
+                        })
+                    else:
+                        # deepseek u otro: no soporta imágenes
+                        text_fallbacks.append(
+                            f'[NOTA: Se adjuntó la imagen "{name}" pero este proveedor '
+                            f'no soporta análisis de imágenes. Usa Claude o GPT-4o para eso.]'
+                        )
+
+                # ---- PDF ---------------------------------------------------
+                elif mime == 'application/pdf':
+                    if self.provider_type == 'anthropic':
+                        # Claude soporta PDF nativo
+                        blocks.append({
+                            'type': 'document',
+                            'source': {'type': 'base64', 'media_type': 'application/pdf', 'data': data_b64},
+                        })
+                    else:
+                        # OpenAI y DeepSeek: extraer texto del PDF
+                        pdf_text = self._extract_pdf_text(data_b64)
+                        if pdf_text:
+                            text_fallbacks.append(
+                                f'--- CONTENIDO DEL PDF: {name} ---\n{pdf_text}\n--- FIN DEL PDF ---'
+                            )
+                        else:
+                            text_fallbacks.append(
+                                f'[PDF adjunto: "{name}" — no se pudo extraer el texto. '
+                                f'Instala pypdf con: pip install pypdf --break-system-packages]'
+                            )
+
+            except Exception as e:
+                _logger.warning("No se pudo procesar adjunto %s: %s", att.name, e)
+
+        return blocks, text_fallbacks
+
+    def _build_payload(self, messages, system_prompt=None, attachments=None):
         self.ensure_one()
+
+        att_blocks, text_fallbacks = self._build_attachment_content(attachments)
+
+        # Inyectar contenido adjunto en el último mensaje del usuario
+        if messages and (att_blocks or text_fallbacks):
+            last = messages[-1]
+            if last.get('role') == 'user':
+                original_text = last.get('content', '')
+                messages = list(messages[:-1])
+
+                # Texto adicional (PDF extraído, avisos) al final del prompt
+                full_text = original_text
+                if text_fallbacks:
+                    full_text = original_text + '\n\n' + '\n\n'.join(text_fallbacks)
+
+                if att_blocks:
+                    # Proveedor con visión: content como lista de bloques
+                    new_content = att_blocks + [{'type': 'text', 'text': full_text}]
+                    messages = messages + [{'role': 'user', 'content': new_content}]
+                else:
+                    # Solo texto (deepseek o fallback)
+                    messages = messages + [{'role': 'user', 'content': full_text}]
+
         if self.provider_type == 'anthropic':
-            payload = {
-                'model': self.model_name,
-                'max_tokens': self.max_tokens,
-                'messages': messages,
-            }
+            payload = {'model': self.model_name, 'max_tokens': self.max_tokens, 'messages': messages}
             if system_prompt:
                 payload['system'] = system_prompt
         else:
-            # OpenAI / DeepSeek / compatible
             all_messages = []
             if system_prompt:
                 all_messages.append({'role': 'system', 'content': system_prompt})
@@ -123,7 +236,7 @@ class AiProvider(models.Model):
             _logger.error("Error parseando respuesta IA: %s", e)
             return '', 0
 
-    def call_ai(self, prompt, system_prompt=None, context_messages=None):
+    def call_ai(self, prompt, system_prompt=None, context_messages=None, attachments=None):
         """
         Método principal para llamar al proveedor de IA.
         :param prompt: texto del usuario
@@ -136,7 +249,7 @@ class AiProvider(models.Model):
         messages.append({'role': 'user', 'content': prompt})
 
         headers = self._build_headers()
-        payload = self._build_payload(messages, system_prompt)
+        payload = self._build_payload(messages, system_prompt, attachments=attachments)
 
         try:
             response = requests.post(

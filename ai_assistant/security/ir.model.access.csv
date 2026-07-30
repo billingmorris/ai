@@ -6,3 +6,4 @@ access_ai_prompt_template_user,ai.prompt.template user,model_ai_prompt_template,
 access_ai_log_manager,ai.log manager,model_ai_log,base.group_system,1,1,1,1
 access_ai_log_user,ai.log user,model_ai_log,base.group_user,1,1,1,0
 access_ai_action_wizard,ai.action.wizard,model_ai_action_wizard,base.group_user,1,1,1,1
+access_ir_attachment_ai,ir.attachment ai,model_ir_attachment,base.group_user,1,1,1,0

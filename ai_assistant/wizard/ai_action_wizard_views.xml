@@ -7,11 +7,12 @@
             <form string="🤖 Asistente de IA">
                 <sheet>
                     <!-- Campos de contexto (ocultos) -->
-                    <field name="res_model"     invisible="1"/>
-                    <field name="res_id"        invisible="1"/>
-                    <field name="action_type"   invisible="1"/>
-                    <field name="ai_response"   invisible="1"/>
-                    <field name="error_message" invisible="1"/>
+                    <field name="res_model"      invisible="1"/>
+                    <field name="res_id"         invisible="1"/>
+                    <field name="action_type"    invisible="1"/>
+                    <field name="ai_response"    invisible="1"/>
+                    <field name="error_message"  invisible="1"/>
+                    <field name="has_attachment" invisible="1"/>
 
                     <!-- Header -->
                     <div style="
@@ -55,6 +56,22 @@
 • Genera una factura para Acme Corp por 5 horas de consultoría a $150
 • Redacta un correo de seguimiento para el cliente Juan García
 • Traduce el siguiente texto al inglés: ..."/>
+                    </div>
+
+                    <!-- Adjuntos -->
+                    <div style="width:80%; margin: 0 auto 16px auto;">
+                        <field name="attachment_ids"
+                            widget="many2many_binary"
+                            string="📎 Adjuntar imágenes o PDFs"
+                            nolabel="1"
+                            options="{'accepted_file_extensions': '.pdf,.png,.jpg,.jpeg,.gif,.webp'}"/>
+                        <div attrs="{'invisible': [('has_attachment', '=', False)]}"
+                            style="font-size:12px; color:#6c757d; margin-top:4px; line-height:1.6;">
+                            📌 <strong>Claude:</strong> imágenes ✅ | PDFs ✅ nativo<br/>
+                            📌 <strong>GPT-4o:</strong> imágenes ✅ | PDFs ✅ (extrae texto)<br/>
+                            📌 <strong>DeepSeek:</strong> imágenes ⚠️ no soportado | PDFs ✅ (extrae texto)<br/>
+                            <em>Para PDFs se requiere: <code>pip install pypdf --break-system-packages</code></em>
+                        </div>
                     </div>
 
                     <!-- Botón generar -->
