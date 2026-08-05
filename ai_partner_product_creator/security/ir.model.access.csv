@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_ai_creator_provider_admin,ai.creator.provider admin,model_ai_creator_provider,base.group_system,1,1,1,1
+access_ai_creator_provider_user,ai.creator.provider user,model_ai_creator_provider,base.group_user,1,0,0,0
+access_ai_creator_log_admin,ai.creator.log admin,model_ai_creator_log,base.group_system,1,1,1,1
+access_ai_creator_log_user,ai.creator.log user,model_ai_creator_log,base.group_user,1,1,1,0
+access_ai_creator_wizard,ai.creator.wizard,model_ai_creator_wizard,base.group_user,1,1,1,1
