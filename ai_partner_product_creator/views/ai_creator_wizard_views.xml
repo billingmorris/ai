@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══════════════════════════════════════════════════════
+     VISTAS DEL PROVEEDOR IA
+═══════════════════════════════════════════════════════ -->
+
+<record id="view_ai_creator_provider_form" model="ir.ui.view">
+    <field name="name">ai.creator.provider.form</field>
+    <field name="model">ai.creator.provider</field>
+    <field name="arch" type="xml">
+        <form>
+            <header>
+                <button name="action_test" string="🔌 Probar Conexión"
+                    type="object" class="btn-primary"/>
+            </header>
+            <sheet>
+                <widget name="web_ribbon" title="Por Defecto" bg_color="bg-success"
+                    attrs="{'invisible': [('is_default','=',False)]}"/>
+                <div class="oe_title">
+                    <h1><field name="name" placeholder="Nombre del proveedor"/></h1>
+                </div>
+                <group>
+                    <group string="Conexión">
+                        <field name="provider_type"/>
+                        <field name="api_key" password="True"/>
+                        <field name="api_url"/>
+                        <field name="model_name"/>
+                    </group>
+                    <group string="Parámetros">
+                        <field name="max_tokens"/>
+                        <field name="timeout"/>
+                        <field name="is_default"/>
+                        <field name="sequence"/>
+                    </group>
+                </group>
+                <div class="alert alert-info">
+                    <strong>Modelos recomendados:</strong><br/>
+                    Claude: <code>claude-sonnet-4-6</code> (recomendado) |
+                    <code>claude-haiku-4-5-20251001</code> (económico)<br/>
+                    OpenAI: <code>gpt-4o</code> | <code>gpt-4o-mini</code><br/>
+                    DeepSeek: <code>deepseek-chat</code>
+                </div>
+            </sheet>
+        </form>
+    </field>
+</record>
+
+<record id="view_ai_creator_provider_tree" model="ir.ui.view">
+    <field name="name">ai.creator.provider.tree</field>
+    <field name="model">ai.creator.provider</field>
+    <field name="arch" type="xml">
+        <tree decoration-success="is_default==True">
+            <field name="sequence" widget="handle"/>
+            <field name="name"/>
+            <field name="provider_type"/>
+            <field name="model_name"/>
+            <field name="is_default"/>
+            <field name="active"/>
+        </tree>
+    </field>
+</record>
+
+<record id="action_ai_creator_provider" model="ir.actions.act_window">
+    <field name="name">Proveedores IA</field>
+    <field name="res_model">ai.creator.provider</field>
+    <field name="view_mode">tree,form</field>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════
+     WIZARD PRINCIPAL
+═══════════════════════════════════════════════════════ -->
+
+<record id="view_ai_creator_wizard_form" model="ir.ui.view">
+    <field name="name">ai.creator.wizard.form</field>
+    <field name="model">ai.creator.wizard</field>
+    <field name="arch" type="xml">
+        <form string="🤖 Crear con IA">
+            <sheet>
+
+                <!-- ── HEADER VISUAL ─────────────────────────── -->
+                <div style="
+                    background: linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);
+                    color:white; padding:20px 24px; border-radius:10px; margin-bottom:20px;
+                    display:flex; align-items:center; gap:16px">
+                    <div style="font-size:48px;line-height:1">🤖</div>
+                    <div>
+                        <div style="font-size:20px;font-weight:700;margin-bottom:4px">
+                            Asistente IA — Creación en Lenguaje Natural
+                        </div>
+                        <div style="opacity:0.8;font-size:13px">
+                            Escribe la descripción del registro y la IA extraerá los datos automáticamente
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── ESTADO: BORRADOR ──────────────────────── -->
+                <div attrs="{'invisible': [('state','!=','draft')]}">
+
+                    <group string="⚙️ Configuración">
+                        <group>
+                            <field name="record_type" widget="radio"/>
+                        </group>
+                        <group>
+                            <field name="provider_id" options="{'no_create': True}"/>
+                        </group>
+                    </group>
+
+                    <div style="margin-bottom:12px">
+                        <label for="instruction"
+                            style="font-weight:700; color:#495057; display:block; margin-bottom:6px">
+                            💬 Instrucción en lenguaje natural
+                        </label>
+                        <field name="instruction" nolabel="1" widget="text"
+                            style="width:100%; min-height:130px; font-size:14px;
+                                   display:block; box-sizing:border-box"
+                            placeholder="Ejemplos:&#10;• Crear cliente Comercializadora ABC SAS, NIT 901234567-8, Calle 45 #12-34, Medellín, Antioquia, ventas@abc.com, cel 3001234567&#10;• Crear proveedor Industrias López SAS, NIT 890123456, Carrera 50 #30-20, Bogotá, compras@lopez.com&#10;• Crear producto Shampoo de Romero 500 ml, referencia SHA-500, precio 28000, costo 17000, almacenable, categoría Cosméticos"/>
+                    </div>
+
+                    <div class="alert alert-secondary" style="font-size:12px">
+                        💡 <strong>Consejo:</strong> Cuanto más información incluyas, mejor.
+                        La IA solo extrae lo que mencionas — no inventa datos.
+                    </div>
+                </div>
+
+                <!-- ── ESTADO: PREVIEW ───────────────────────── -->
+                <div attrs="{'invisible': [('state','!=','preview')]}">
+
+                    <div class="alert alert-info">
+                        <strong>🔍 Paso 2 de 2:</strong>
+                        Revisa los datos extraídos. Puedes editar el JSON antes de confirmar.
+                    </div>
+
+                    <!-- Vista previa visual -->
+                    <field name="preview_html" widget="html" nolabel="1" readonly="1"/>
+
+                    <!-- JSON editable -->
+                    <group string="✏️ JSON extraído (editable)">
+                        <field name="preview_json" nolabel="1" widget="text"
+                            style="font-family:monospace; font-size:12px; min-height:180px;
+                                   background:#1e1e1e; color:#d4d4d4; border-radius:6px; padding:12px"/>
+                    </group>
+
+                </div>
+
+                <!-- ── ESTADO: CREADO ────────────────────────── -->
+                <div attrs="{'invisible': [('state','!=','done')]}">
+                    <div style="
+                        text-align:center; padding:40px 20px;
+                        background:#f0fdf4; border:2px solid #86efac;
+                        border-radius:10px">
+                        <div style="font-size:64px;margin-bottom:12px">✅</div>
+                        <div style="font-size:22px;font-weight:700;color:#166534;margin-bottom:8px">
+                            ¡Registro creado exitosamente!
+                        </div>
+                        <div style="font-size:16px;color:#15803d">
+                            <field name="res_name" nolabel="1" readonly="1"
+                                style="font-weight:700; color:#166534; border:none; background:transparent"/>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── ESTADO: ERROR ─────────────────────────── -->
+                <div attrs="{'invisible': [('state','!=','error')]}">
+                    <div class="alert alert-danger">
+                        <strong>❌ Error:</strong>
+                        <field name="error_message" nolabel="1" readonly="1" widget="text"/>
+                    </div>
+                </div>
+
+                <!-- campos ocultos de control -->
+                <field name="state"     invisible="1"/>
+                <field name="res_model" invisible="1"/>
+                <field name="res_id"    invisible="1"/>
+
+            </sheet>
+
+            <!-- ── FOOTER CON BOTONES CONTEXTUALES ──────────── -->
+            <footer>
+
+                <!-- BORRADOR -->
+                <button name="action_extract"
+                    attrs="{'invisible': [('state','!=','draft')]}"
+                    string="✨ Extraer con IA"
+                    type="object" class="btn-primary"
+                    style="padding:10px 28px; font-size:15px"/>
+                <button string="Cancelar"
+                    attrs="{'invisible': [('state','!=','draft')]}"
+                    class="btn-secondary" special="cancel"/>
+
+                <!-- PREVIEW -->
+                <button name="action_confirm"
+                    attrs="{'invisible': [('state','!=','preview')]}"
+                    string="✅ Confirmar y Crear en Odoo"
+                    type="object" class="btn-success"
+                    confirm="¿Crear este registro con los datos mostrados?"
+                    style="padding:10px 28px"/>
+                <button name="action_extract"
+                    attrs="{'invisible': [('state','!=','preview')]}"
+                    string="🔄 Re-extraer"
+                    type="object" class="btn-secondary"/>
+                <button string="Cancelar"
+                    attrs="{'invisible': [('state','!=','preview')]}"
+                    class="btn-secondary" special="cancel"/>
+
+                <!-- CREADO -->
+                <button name="action_open_record"
+                    attrs="{'invisible': [('state','!=','done')]}"
+                    string="📂 Ver Registro Creado"
+                    type="object" class="btn-primary"/>
+                <button name="action_reset"
+                    attrs="{'invisible': [('state','!=','done')]}"
+                    string="➕ Crear Otro"
+                    type="object" class="btn-secondary"/>
+                <button string="Cerrar"
+                    attrs="{'invisible': [('state','!=','done')]}"
+                    class="btn-secondary" special="cancel"/>
+
+                <!-- ERROR -->
+                <button name="action_extract"
+                    attrs="{'invisible': [('state','!=','error')]}"
+                    string="🔄 Reintentar"
+                    type="object" class="btn-warning"/>
+                <button string="Cancelar"
+                    attrs="{'invisible': [('state','!=','error')]}"
+                    class="btn-secondary" special="cancel"/>
+
+            </footer>
+        </form>
+    </field>
+</record>
+
+<record id="action_ai_creator_wizard" model="ir.actions.act_window">
+    <field name="name">🤖 Crear con IA</field>
+    <field name="res_model">ai.creator.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+</record>
+
+</odoo>
